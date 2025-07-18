@@ -135,7 +135,9 @@ namespace ShortcutCleanerWorker
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
-        private readonly string _folderToClean = @"C:\Users\Public\Desktop";
+        //private readonly string _folderToClean = @"C:\Users\Public\Desktop";
+        //private readonly string _folderToClean = @"C:\Users\Public\Desktop";
+        private readonly string _folderAdd = @"C:\sys\newshortcut";
         private int count=0;
 
         public Worker(ILogger<Worker> logger)
@@ -151,32 +153,38 @@ namespace ShortcutCleanerWorker
             {
                 try
                 {
-                    string nombreUsuario = ObtenerNombreUsuario();
-                    string folder = _folderToClean.Replace("Public", nombreUsuario);
+                    string rutaEscritorioUsuario = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        "Desktop");
+                    //string nombreUsuario = ObtenerNombreUsuario();
+                    //string rutaFolderUsuario = _folderToClean.Replace("Public", nombreUsuario);
 
-                    if (!Directory.Exists(folder))
+                    if (!Directory.Exists(rutaEscritorioUsuario))
                     {
-                        _logger.LogWarning($"El directorio no existe: {folder}");
+                        _logger.LogWarning($"El directorio no existe: {rutaEscritorioUsuario}");
+                        count++;
+                        _logger.LogInformation($"Ejecusion numero:{count} ");
                     }
                     else
                     {
-                        var files = Directory.GetFiles(folder, "*.lnk", SearchOption.AllDirectories);
-                        foreach (var file in files)
-                        {
-                            try
-                            {
-                                // Si quieres borrar realmente el archivo, descomenta la siguiente línea:
-                                // File.Delete(file);
-                                _logger.LogInformation($"Eliminado: {file}");
-                            }
-                            catch (Exception e)
-                            {
-                                _logger.LogError(e, $"Error eliminando el archivo: {file}");
-                            }
-                        }
+                        RemoveShortCut(rutaEscritorioUsuario);                        
                         count++;
-                        _logger.LogError($"Ejecusion numero:{count} ");
+                        _logger.LogInformation($"Ejecusion numero:{count} ");
                         
+                    }
+
+                    if (!Directory.Exists(_folderAdd))
+                    {
+                        _logger.LogWarning($"El directorio no existe: {_folderAdd}");
+                        count++;
+                        _logger.LogInformation($"Ejecusion numero:{count} ");
+                    }
+                    else
+                    {
+                        AddNewShortCut(rutaEscritorioUsuario);
+                        count++;
+                        _logger.LogInformation($"Ejecusion numero:{count} ");
+
                     }
                 }
                 catch (Exception ex)
@@ -185,7 +193,51 @@ namespace ShortcutCleanerWorker
                 }
 
                 // Espera 10 segundos antes de volver a limpiar
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            }
+        }
+
+        public void RemoveShortCut(string rutaEscritorio)
+        {
+            //var files = Directory.GetFiles(item, "*.lnk", SearchOption.AllDirectories); //esta linea agrega tambien las subcarpetas del directorio
+            var files = Directory.GetFiles(rutaEscritorio, "*.lnk");
+            foreach (var file in files)
+            {
+                try
+                {
+                    // Si quieres borrar realmente el archivo, descomenta la siguiente línea:
+                    // File.Delete(file);
+                    _logger.LogInformation($"Eliminado: {file}");
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, $"Error eliminando el archivo: {file}");
+                }
+            }           
+        }
+        public void AddNewShortCut(string rutaEscritorio)
+        {
+            //string escritorioUsuario = Path.Combine(
+            //            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            //            "Desktop");
+            var archivos = Directory.GetFiles(_folderAdd, "*.lnk", SearchOption.AllDirectories);
+
+            foreach (var archivo in archivos)
+            {
+                try
+                {
+                    string nombreArchivo = Path.GetFileName(archivo);
+                    string destino = Path.Combine(rutaEscritorio, nombreArchivo);
+
+                    // Copiar el archivo al escritorio (sobrescribe si existe)
+                    //File.Copy(archivo, destino, true);
+
+                    _logger.LogInformation($"Copiado: {archivo} -> {destino}");
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, $"Error copiando el archivo: {archivo}");
+                }
             }
         }
 
