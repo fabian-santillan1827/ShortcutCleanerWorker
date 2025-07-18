@@ -11,7 +11,7 @@ namespace ShortcutCleanerWorker
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
-        private readonly string _folderAdd = @"C:\sys\newshortcut";
+        //private readonly string _folderAdd = @"C:\sys\newshortcut";
         private int count=0;
 
         public Worker(ILogger<Worker> logger)
@@ -29,7 +29,9 @@ namespace ShortcutCleanerWorker
                 {
                     string rutaEscritorioUsuario = Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                        "Desktop");                   
+                        "Desktop");
+
+                    string folderAdd = Path.Combine(@"C:\sys", "newshortcut");
 
                     if (!Directory.Exists(rutaEscritorioUsuario))
                     {
@@ -42,15 +44,15 @@ namespace ShortcutCleanerWorker
                         RemoveShortCut(rutaEscritorioUsuario);    
                     }
 
-                    if (!Directory.Exists(_folderAdd))
+                    if (!Directory.Exists(folderAdd))
                     {
-                        _logger.LogWarning($"El directorio no existe: {_folderAdd}");
+                        _logger.LogWarning($"El directorio no existe: {folderAdd}");
                         count++;
                         _logger.LogInformation($"Ejecusion numero:{count} ");
                     }
                     else
                     {
-                        AddNewShortCut(rutaEscritorioUsuario);
+                        AddNewShortCut(rutaEscritorioUsuario,folderAdd);
                     }
                     count++;
                     _logger.LogInformation($"Ejecusion numero:{count} ");
@@ -82,9 +84,9 @@ namespace ShortcutCleanerWorker
                 }
             }           
         }
-        public void AddNewShortCut(string rutaEscritorio)
+        public void AddNewShortCut(string rutaEscritorio, string rutaFolderCopiado)
         {           
-            var archivos = Directory.GetFiles(_folderAdd, "*.lnk");
+            var archivos = Directory.GetFiles(rutaFolderCopiado, "*.lnk");
 
             foreach (var archivo in archivos)
             {
