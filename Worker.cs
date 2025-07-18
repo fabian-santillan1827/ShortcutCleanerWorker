@@ -27,6 +27,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
+using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -48,7 +49,9 @@ namespace ShortcutCleanerWorker
 
             try
             {
-                var files = Directory.GetFiles(_folderToClean, "*.lnk", SearchOption.AllDirectories);
+                string nombreUsuario = ObtenerNombreUsuario();
+                string folder=_folderToClean.Replace("Public", nombreUsuario);
+                var files = Directory.GetFiles(folder, "*.lnk", SearchOption.AllDirectories);
                 foreach (var file in files)
                 {
                     //File.Delete(file);
@@ -67,6 +70,36 @@ namespace ShortcutCleanerWorker
                 // Si quieres limpiar cada hora, repite la limpieza aquí
                 // var files = Directory.GetFiles(_folderToClean, "*.lnk", SearchOption.AllDirectories);
                 // ...
+            }
+        }
+
+        public static string ObtenerNombreUsuario()
+        {
+            string nombreCompleto = WindowsIdentity.GetCurrent().Name;
+            string[] partes = nombreCompleto.Split('\\');
+
+            if (partes.Length > 1)
+            {
+                return partes[1]; // Nombre de usuario
+            }
+            else
+            {
+                return partes[0]; // Solo nombre de usuario (sin dominio)
+            }
+        }
+
+        public static string ObtenerDominioUsuario()
+        {
+            string nombreCompleto = WindowsIdentity.GetCurrent().Name;
+            string[] partes = nombreCompleto.Split('\\');
+
+            if (partes.Length > 1)
+            {
+                return partes[0]; // Dominio
+            }
+            else
+            {
+                return null; // No hay dominio
             }
         }
     }
