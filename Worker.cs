@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
+using System.Management;
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,28 +28,44 @@ namespace ShortcutCleanerWorker
             {
                 try
                 {
-                    string rutaEscritorioUsuario = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                        "Desktop");
+                    //string rutaEscritorioUsuario = Path.Combine(
+                    //    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                    //    "Desktop");
+                    string hostname = "0415C99CLCN - CLN";//Environment.MachineName;
+                    var letratienda = hostname[4];
+                    string hostname2 = System.Net.Dns.GetHostName();
+                    string rutaEscritorioUsuario = GetLoggedOnUserDesktop();
 
-                    string folderAdd = Path.Combine(@"C:\sys", "newshortcut");
-
-                    if (!Directory.Exists(rutaEscritorioUsuario))
+                    if (hostname.Length >= 5 && (hostname[4] == 'c' || hostname[4] == 'C'))
                     {
-                        _logger.LogWarning($"El directorio no existe: {rutaEscritorioUsuario}");
-                        count++;
-                        _logger.LogInformation($"Ejecusion numero:{count} ");
+                        // Sí, en la posición 5 hay una 'c'
+                        _logger.LogInformation($"La quinta letra del hostname '{hostname}' es 'c' o 'C'");
                     }
                     else
                     {
-                        RemoveShortCut(rutaEscritorioUsuario);    
+                        // No hay 'c' en la posición 5
+                        _logger.LogInformation($"La quinta letra del hostname '{hostname}' NO es 'c'");
+                    }
+
+
+                    string folderAdd = Path.Combine(@"C:\sys", "newshortcut");
+
+                    if (string.IsNullOrEmpty(rutaEscritorioUsuario) || !Directory.Exists(rutaEscritorioUsuario))
+                    {
+                        _logger.LogWarning($"El directorio no existe: {rutaEscritorioUsuario}");
+                        //count++;
+                        //_logger.LogInformation($"Ejecusion numero:{count} ");
+                    }
+                    else
+                    {
+                        RemoveShortCut(rutaEscritorioUsuario);
                     }
 
                     if (!Directory.Exists(folderAdd))
                     {
                         _logger.LogWarning($"El directorio no existe: {folderAdd}");
-                        count++;
-                        _logger.LogInformation($"Ejecusion numero:{count} ");
+                        //count++;
+                        //_logger.LogInformation($"Ejecusion numero:{count} ");
                     }
                     else
                     {
@@ -75,7 +92,7 @@ namespace ShortcutCleanerWorker
             {
                 try
                 {
-                    // File.Delete(file);
+                    File.Delete(file);
                     _logger.LogInformation($"Eliminado: {file}");
                 }
                 catch (Exception e)
@@ -94,8 +111,8 @@ namespace ShortcutCleanerWorker
                 {
                     string nombreArchivo = Path.GetFileName(archivo);
                     string destino = Path.Combine(rutaEscritorio, nombreArchivo);
-                    
-                    //File.Copy(archivo, destino, true);
+
+                    File.Copy(archivo, destino, true);
 
                     _logger.LogInformation($"Copiado: {archivo} -> {destino}");
                 }
@@ -104,6 +121,25 @@ namespace ShortcutCleanerWorker
                     _logger.LogError(e, $"Error copiando el archivo: {archivo}");
                 }
             }
-        }        
+        }
+
+        private string GetLoggedOnUserDesktop()
+        {
+            string desktopPath = null;
+            var query = new SelectQuery("Win32_ComputerSystem");
+            using (var searcher = new ManagementObjectSearcher(query))
+            {
+                foreach (ManagementObject mo in searcher.Get())
+                {
+                    var username = (string)mo["UserName"];
+                    if (!string.IsNullOrEmpty(username))
+                    {
+                        var userProfile = $@"C:\Users\{username.Split('\\')[1]}";
+                        desktopPath = Path.Combine(userProfile, "Desktop");
+                    }
+                }
+            }
+            return desktopPath;
+        }
     }
 }
